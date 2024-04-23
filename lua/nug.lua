@@ -135,6 +135,15 @@ function M.dotnet_list_packages()
     vim.api.nvim_buf_set_lines(win_buf_num, 0, -1, false, lines)
 end
 
+-- https://azuresearch-usnc.nuget.org/query?q=restsharp 
+function M.search_nuget_feed(query)
+    -- perform web request
+    local curl = require("plenary.curl")
+    local resp = curl.get(
+        "https://azuresearch-usnc.nuget.org/query?q=" .. query, { timeout = 2000 })
+    vim.print(resp)
+end
+
 vim.api.nvim_create_user_command('Nug', M.open_win, {
     desc = "Open nug's main window.",
     nargs = 0
@@ -144,5 +153,16 @@ vim.api.nvim_create_user_command('NugPackages' , M.list_package, {
     desc = "Open nug's main window.",
     nargs = 0
 })
+
+vim.api.nvim_create_user_command(
+    'NugSearch',
+    function(opts)
+        M.search_nuget_feed(opts.args)
+    end,
+    {
+        desc = "Open nug's main window.",
+        nargs = 1
+    }
+)
 
 return M
