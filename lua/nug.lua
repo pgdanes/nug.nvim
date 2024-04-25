@@ -1,36 +1,8 @@
 M = {}
 
+local List = require("list")
+
 ---@class PackageRef : { project: string, package: string, version: string }
-
-List = {}
-
-function List.group_by(list, fn)
-    local result = {}
-
-    for _, v in ipairs(list) do
-        local group = fn(v)
-
-        if not result[group] then
-            result[group] = {}
-        end
-
-        table.insert(result[group], v)
-    end
-
-    return result
-end
-
-function List.distinct(list)
-    local result = {}
-
-    for _, v in ipairs(list) do
-        if not vim.tbl_contains(result, v) then
-            table.insert(result, v)
-        end
-    end
-
-    return result
-end
 
 ---@return PackageRef[]
 local function package_to_str(package)
@@ -103,9 +75,17 @@ function M.get_packages()
     return references
 end
 
+---Lists all project references in the current directory and nested directories.
+---Internally this is just grepping through the csproj files, so resolved packages
+---may differ from whats listed.
 ---@return nil
 function M.list_package()
     local references = M.get_packages()
+    if #references == 0 then
+        vim.print("No packages found, are you in a dotnet project?")
+        return
+    end
+
     local projects = vim.tbl_map(function(r) return r.project end, references)
     projects = List.distinct(projects)
 
@@ -114,45 +94,48 @@ function M.list_package()
         function(ref) return ref.project end
     )
 
-    local lines = {}
+    local lines = {""}
+    local package_name_lines = {}
     for _, project in ipairs(projects)  do
+        table.insert(package_name_lines, #lines)
         table.insert(lines, project)
         local packages = packages_by_project[project]
         local project_lines = vim.tbl_map(package_to_str, packages)
-        table.insert(lines, project_lines)
+        for _, line in ipairs(project_lines) do
+            table.insert(lines, line)
+        end
+
         table.insert(lines, "")
     end
 
-    lines = vim.tbl_flatten(lines)
+    lines = vim.tbl_map(function(l) return "   " .. l end, lines)
     local win_buf_num = M.open_win()
+
     vim.api.nvim_buf_set_lines(win_buf_num, 0, -1, false, lines)
+    for _, line in ipairs(package_name_lines) do
+        vim.api.nvim_buf_add_highlight(win_buf_num, -1, "Function", line, 0, -1)
+    end
 end
 
 function M.dotnet_list_packages()
     local lines = vim.fn.systemlist("dotnet list package")
-
     local win_buf_num = M.open_win()
     vim.api.nvim_buf_set_lines(win_buf_num, 0, -1, false, lines)
 end
 
 -- https://azuresearch-usnc.nuget.org/query?q=restsharp 
 function M.search_nuget_feed(query)
-    -- perform web request
-    local curl = require("plenary.curl")
-    local resp = curl.get(
-        "https://azuresearch-usnc.nuget.org/query?q=" .. query, { timeout = 2000 })
-    vim.print(resp)
+    local results = require("nuget").search(query)
+    vim.print(results)
 end
 
-vim.api.nvim_create_user_command('Nug', M.open_win, {
-    desc = "Open nug's main window.",
-    nargs = 0
-})
-
-vim.api.nvim_create_user_command('NugPackages' , M.list_package, {
-    desc = "Open nug's main window.",
-    nargs = 0
-})
+vim.api.nvim_create_user_command(
+    'NugPackages',
+    M.list_package, {
+        desc = "Show all nuget package references in any csproj in the current directory.",
+        nargs = 0
+    }
+)
 
 vim.api.nvim_create_user_command(
     'NugSearch',
@@ -160,7 +143,19 @@ vim.api.nvim_create_user_command(
         M.search_nuget_feed(opts.args)
     end,
     {
-        desc = "Open nug's main window.",
+        desc = "Search for nuget packages",
+        nargs = 1
+    }
+)
+
+-- TODO: Completion for current projects
+vim.api.nvim_create_user_command(
+    'NugLatest',
+    function(opts)
+        vim.print(require("nuget").get_latest_version(opts.args))
+    end,
+    {
+        desc = "Get latest version of a nuget package.",
         nargs = 1
     }
 )
