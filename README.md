@@ -15,3 +15,5 @@ Add the following to your lazy.nvim setup
 
 ### :NugPackages
 List all nuget package references in current directories csproj (and all nested)
+
+![Nuget Packages](./imgs/NugPackages.png)
