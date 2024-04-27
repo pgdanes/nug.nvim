@@ -1,5 +1,8 @@
 M = {}
 
+-- TODO: Update package to latest Major/minor/patch/pre-release
+-- TODO: Pull from local indexes rather than just global nuget
+-- TODO: Completion for current projects, e.g. :NugUpdate <completion for references in projects>
 local List = require("list")
 
 ---@class PackageRef : { project: string, package: string, version: string }
@@ -148,7 +151,6 @@ vim.api.nvim_create_user_command(
     }
 )
 
--- TODO: Completion for current projects
 vim.api.nvim_create_user_command(
     'NugLatest',
     function(opts)
