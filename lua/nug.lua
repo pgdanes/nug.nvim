@@ -1,6 +1,9 @@
 M = {}
 
+-- In progess:
 -- TODO: Update package to latest Major/minor/patch/pre-release
+--
+-- To start:
 -- TODO: Pull from local indexes rather than just global nuget
 -- TODO: Completion for current projects, e.g. :NugUpdate <completion for references in projects>
 local List = require("list")
@@ -111,7 +114,7 @@ function M.list_package()
         table.insert(lines, "")
     end
 
-    lines = vim.tbl_map(function(l) return "   " .. l end, lines)
+    -- lines = vim.tbl_map(function(l) return "   " .. l end, lines)
     local win_buf_num = M.open_win()
 
     vim.api.nvim_buf_set_lines(win_buf_num, 0, -1, false, lines)
@@ -161,5 +164,12 @@ vim.api.nvim_create_user_command(
         nargs = 1
     }
 )
+
+function M.get_latest_minor(package_id, current_version)
+    local nuget = require("nuget")
+    local version = require("version")
+    local versions = nuget.get_versions(package_id)
+    local resolved = version.resolve_version(versions, current_version, "minor")
+end
 
 return M
